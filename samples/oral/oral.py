@@ -28,7 +28,7 @@ class OralConfig(Config):
     NAME = "oral"
     # GPU使用数量
     # GPU_COUNT = 1
-    IMAGES_PER_GPU = 2
+    IMAGES_PER_GPU = 1
     # 总分类 1个background和7个口腔分类
     NUM_CLASSES = 1 + 7
     # epoch
