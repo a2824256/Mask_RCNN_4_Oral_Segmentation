@@ -2,7 +2,7 @@ import os
 import sys
 import numpy as np
 import cv2
-
+import argparse
 # Root directory of the project
 ROOT_DIR = os.path.abspath("../../")
 
@@ -45,17 +45,21 @@ class OralDataset(utils.Dataset):
         # 数据集annotations的路径
         if path == None:
             if subset == "train":
-                anns_json_path = ROOT_DIR + '\\oral_dataset\\train\\annotations.json'
+                # anns_json_path = ROOT_DIR + '/oral_dataset/train/annotations.json'
+                anns_json_path = ROOT_DIR + '/oral_dataset/annotations.json'
                 # 数据集图片的路径
-                img_path = ROOT_DIR + '\\oral_dataset\\train\\JPEGImages'
+                # img_path = ROOT_DIR + '/oral_dataset/train/JPEGImages'
+                img_path = ROOT_DIR + '/oral_dataset/JPEGImages'
             else:
-                anns_json_path = ROOT_DIR + '\\oral_dataset\\val\\annotations.json'
+                # anns_json_path = ROOT_DIR + '/oral_dataset/val/annotations.json'
+                anns_json_path = ROOT_DIR + '/oral_dataset/annotations.json'
                 # 数据集图片的路径
-                img_path = ROOT_DIR + '\\oral_dataset\\val\\JPEGImages'
+                # img_path = ROOT_DIR + '/oral_dataset/val/JPEGImages'
+                img_path = ROOT_DIR + '/oral_dataset/JPEGImages'
         else:
-            anns_json_path = path + subset +'\\annotations.json'
+            anns_json_path = path + subset + '/annotations.json'
             # 数据集图片的路径
-            img_path = path + subset + '\\JPEGImages'
+            img_path = path + subset + '/JPEGImages'
 
         self.add_class("oral", 1, "teeth_top")
         self.add_class("oral", 2, "teeth_bottom")
@@ -79,8 +83,11 @@ class OralDataset(utils.Dataset):
         # for i in class_ids:
         #     self.add_class("oral", i, coco.loadCats(i)[0]["name"])
         for i in image_ids:
-            self.add_image("oral", image_id=i, path=img_path + '\\' + i + '.jpg')
-        return coco
+            self.add_image("oral", image_id=i, width=640, height=480,
+                           path=img_path + '/' + str(i) + '.jpg',
+                           annotations=coco.loadAnns(coco.getAnnIds(
+                               imgIds=[i], catIds=class_ids, iscrowd=None)))
+        # return coco
 
     # mask加载函数，根据输入图片id返回这张图所有的mask
     def load_mask(self, image_id):
@@ -156,28 +163,35 @@ class OralDataset(utils.Dataset):
 
 # 主函数
 if __name__ == '__main__':
-    import argparse
-
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Train Mask R-CNN on Oral dataset')
     parser.add_argument("command",
                         metavar="<command>",
                         help="'train' or 'evaluate' on Oral dataset")
-    parser.add_argument('--model', required=True,
+    parser.add_argument('--model', required=False,
                         metavar="/path/to/weights.h5",
+                        help="Path to weights .h5 file")
+    parser.add_argument('--log', required=False,
+                        metavar="./logs",
                         help="Path to weights .h5 file")
     args = parser.parse_args()
     print("Command: ", args.command)
+    if args.log is None:
+        log_path = ROOT_DIR + "/logs"
+    else:
+        log_path = args.log
+
     # train import config
     if args.command == "train":
         config = OralConfig()
         model = modellib.MaskRCNN(mode="training", config=config,
-                                  model_dir=args.logs)
-        if len(args.model) == 0:
+                                  model_dir=log_path)
+        if args.model is None:
             model_path = ORAL_MODEL_PATH
         else:
             model_path = args.model
-        model.load_weights(model_path, by_name=True)
+        model.load_weights(model_path, by_name=True, exclude=[ "mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
+
 
     else:
         print("Please enter correct command")
