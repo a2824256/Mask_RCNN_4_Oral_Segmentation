@@ -15,27 +15,48 @@ from pycocotools import mask as maskUtils
 from pycocotools.coco import COCO
 from mrcnn.config import Config
 from mrcnn import model as modellib, utils
+
 # 模型路径，迁移学习，在已经训练好的模型上重新训练
 ORAL_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
 
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 
+
 # 数据配置类
 class OralConfig(Config):
+    # 数据集名称
     NAME = "oral"
+    # GPU使用数量
     # GPU_COUNT = 1
     IMAGES_PER_GPU = 2
+    # 总分类 1个background和7个口腔分类
     NUM_CLASSES = 1 + 7
+    # epoch
     STEPS_PER_EPOCH = 100
     VALIDATION_STEPS = 5
+
 
 # 数据集类
 class OralDataset(utils.Dataset):
     # 数据集加载函数
-    # TODO load the val dataset
-    def load_oral(self):
-        anns_json_path = ROOT_DIR + '\\oral_dataset\\annotations.json'
-        img_path = ROOT_DIR + '\\oral_dataset\\JPEGImages'
+    # subset: "train" 或者 "val"
+    # path: 对应数据集的根路径
+    def load_oral(self, subset, path=None):
+        # 数据集annotations的路径
+        if path == None:
+            if subset == "train":
+                anns_json_path = ROOT_DIR + '\\oral_dataset\\train\\annotations.json'
+                # 数据集图片的路径
+                img_path = ROOT_DIR + '\\oral_dataset\\train\\JPEGImages'
+            else:
+                anns_json_path = ROOT_DIR + '\\oral_dataset\\val\\annotations.json'
+                # 数据集图片的路径
+                img_path = ROOT_DIR + '\\oral_dataset\\val\\JPEGImages'
+        else:
+            anns_json_path = path + subset +'\\annotations.json'
+            # 数据集图片的路径
+            img_path = path + subset + '\\JPEGImages'
+
         self.add_class("oral", 1, "teeth_top")
         self.add_class("oral", 2, "teeth_bottom")
         self.add_class("oral", 3, "uvula")
@@ -132,6 +153,7 @@ class OralDataset(utils.Dataset):
         m = maskUtils.decode(rle)
         return m
 
+
 # 主函数
 if __name__ == '__main__':
     import argparse
@@ -164,11 +186,13 @@ if __name__ == '__main__':
     # train import dataset
     if args.command == "train":
         dataset_train = OralDataset()
-        dataset_train.load_oral()
+        # TODO 自己添加路径path或者使用默认路径
+        dataset_train.load_oral('train')
         dataset_train.prepare()
 
         dataset_val = OralDataset()
-        dataset_val.load_oral()
+        # TODO 自己添加路径path或者使用默认路径
+        dataset_val.load_oral('oral')
         dataset_val.prepare()
         augmentation = imgaug.augmenters.Fliplr(0.5)
         # Training - Stage 1
@@ -191,5 +215,3 @@ if __name__ == '__main__':
     else:
         print("Please enter correct command")
         quit()
-
-
