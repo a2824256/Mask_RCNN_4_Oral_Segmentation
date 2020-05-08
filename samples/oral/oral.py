@@ -16,49 +16,49 @@ from pycocotools.coco import COCO
 from mrcnn.config import Config
 from mrcnn import model as modellib, utils
 
-# 模型路径，迁移学习，在已经训练好的模型上重新训练
 ORAL_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
 
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 
 
-# 数据配置类
+# data config class
 class OralConfig(Config):
-    # 数据集名称
+    # dataset name
     NAME = "oral"
-    # GPU使用数量
-    # GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
-    # 总分类 1个background和7个口腔分类
+    GPU_COUNT = 1
+    IMAGES_PER_GPU = 8
+    # total classes 1 background和7 oral classes
     NUM_CLASSES = 1 + 7
+    IMAGE_MIN_DIM = 480
+    IMAGE_MAX_DIM = 640
     # epoch
     STEPS_PER_EPOCH = 100
     VALIDATION_STEPS = 5
 
 
-# 数据集类
+# dataset class
 class OralDataset(utils.Dataset):
-    # 数据集加载函数
-    # subset: "train" 或者 "val"
-    # path: 对应数据集的根路径
+    # load dataset function
+    # subset: "train" or "val"
+    # path: dataset root directory
     def load_oral(self, subset, path=None):
-        # 数据集annotations的路径
+        # dataset annotations file path
         if path == None:
             if subset == "train":
                 # anns_json_path = ROOT_DIR + '/oral_dataset/train/annotations.json'
                 anns_json_path = ROOT_DIR + '/oral_dataset/annotations.json'
-                # 数据集图片的路径
+                # dataset img path
                 # img_path = ROOT_DIR + '/oral_dataset/train/JPEGImages'
                 img_path = ROOT_DIR + '/oral_dataset/JPEGImages'
             else:
                 # anns_json_path = ROOT_DIR + '/oral_dataset/val/annotations.json'
                 anns_json_path = ROOT_DIR + '/oral_dataset/annotations.json'
-                # 数据集图片的路径
+                # dataset img path
                 # img_path = ROOT_DIR + '/oral_dataset/val/JPEGImages'
                 img_path = ROOT_DIR + '/oral_dataset/JPEGImages'
         else:
             anns_json_path = path + subset + '/annotations.json'
-            # 数据集图片的路径
+            # dataset img path
             img_path = path + subset + '/JPEGImages'
 
         self.add_class("oral", 1, "teeth_top")
@@ -70,7 +70,6 @@ class OralDataset(utils.Dataset):
         self.add_class("oral", 7, "tonsil_left")
         coco = COCO(anns_json_path)
         class_ids = sorted(coco.getCatIds())
-
         if class_ids:
             image_ids = []
             for id in class_ids:
@@ -83,13 +82,14 @@ class OralDataset(utils.Dataset):
         # for i in class_ids:
         #     self.add_class("oral", i, coco.loadCats(i)[0]["name"])
         for i in image_ids:
+            print(coco.loadAnns(coco.getAnnIds(imgIds=[i], catIds=class_ids, iscrowd=None)))
             self.add_image("oral", image_id=i, width=640, height=480,
                            path=img_path + '/' + str(i) + '.jpg',
                            annotations=coco.loadAnns(coco.getAnnIds(
                                imgIds=[i], catIds=class_ids, iscrowd=None)))
         # return coco
 
-    # mask加载函数，根据输入图片id返回这张图所有的mask
+    # mask loading function, load by the image id
     def load_mask(self, image_id):
         image_info = self.image_info[image_id]
         if image_info["source"] != "oral":
@@ -130,7 +130,7 @@ class OralDataset(utils.Dataset):
             # Call super class to return an empty mask
             return super(OralDataset, self).load_mask(image_id)
 
-    # annotation 转RLE
+    # annotation convert to RLE
     def annToRLE(self, ann, height, width):
         """
         Convert annotation which can be polygons, uncompressed RLE to RLE.
@@ -161,7 +161,7 @@ class OralDataset(utils.Dataset):
         return m
 
 
-# 主函数
+
 if __name__ == '__main__':
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Train Mask R-CNN on Oral dataset')
@@ -200,12 +200,10 @@ if __name__ == '__main__':
     # train import dataset
     if args.command == "train":
         dataset_train = OralDataset()
-        # TODO 自己添加路径path或者使用默认路径
         dataset_train.load_oral('train')
         dataset_train.prepare()
 
         dataset_val = OralDataset()
-        # TODO 自己添加路径path或者使用默认路径
         dataset_val.load_oral('oral')
         dataset_val.prepare()
         augmentation = imgaug.augmenters.Fliplr(0.5)
