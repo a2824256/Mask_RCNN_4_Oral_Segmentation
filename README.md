@@ -1,7 +1,8 @@
 #口腔分割用mask-rcnn模型
 ### 模型来源
 https://github.com/matterport/Mask_RCNN
-
+### 使用教程地址
+https://blog.csdn.net/a2824256/article/details/106013234
 ### pip依赖版本<br>
 Package                       Version<br>
 ----------------------------- -------------------<br>
